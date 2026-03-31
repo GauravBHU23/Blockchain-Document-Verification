@@ -139,6 +139,13 @@ export default function AuthPage() {
       }}
     >
       <div style={{ width: "100%", maxWidth: 420 }}>
+        <style>{`
+          @media (max-width: 520px) {
+            .auth-otp-actions {
+              flex-direction: column;
+            }
+          }
+        `}</style>
 
         {/* ── Logo ─────────────────────────────────────── */}
         <div
@@ -285,7 +292,7 @@ export default function AuthPage() {
                   </p>
                 )}
 
-                <div style={{ display: "flex", gap: 10 }}>
+                <div className="auth-otp-actions" style={{ display: "flex", gap: 10 }}>
                   <button
                     type="button"
                     className="bv-btn bv-btn--ghost"

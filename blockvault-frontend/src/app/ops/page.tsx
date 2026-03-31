@@ -425,7 +425,7 @@ export default function OpsPage() {
         }
       `}</style>
 
-      <div style={{ padding: "36px 40px", maxWidth: 1240 }}>
+      <div className="bv-page-shell" style={{ maxWidth: 1240 }}>
         <div style={{ marginBottom: 30 }}>
           <h1 style={{ fontSize: 26, marginBottom: 6 }}>Operations Center</h1>
           <p style={{ fontSize: 14, color: "var(--color-text-muted)" }}>

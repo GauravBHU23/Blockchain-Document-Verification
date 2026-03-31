@@ -97,7 +97,26 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: "36px 40px", maxWidth: 1080 }}>
+      <div className="bv-page-shell" style={{ maxWidth: 1080 }}>
+        <style>{`
+          .dashboard-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 36px;
+          }
+          @media (max-width: 960px) {
+            .dashboard-stats-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+          }
+          @media (max-width: 560px) {
+            .dashboard-stats-grid {
+              grid-template-columns: 1fr;
+              gap: 12px;
+            }
+          }
+        `}</style>
 
         {/* ── Page header ──────────────────────────────── */}
         <div className="fade-up" style={{ marginBottom: 32 }}>
@@ -108,15 +127,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Stat cards ───────────────────────────────── */}
-        <div
-          className="fade-up delay-1"
-          style={{
-            display:             "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap:                 16,
-            marginBottom:        36,
-          }}
-        >
+        <div className="fade-up delay-1 dashboard-stats-grid">
           {statCards.map(({ label, value, icon: Icon, color, bgColor }) => (
             <div
               key={label}
@@ -173,7 +184,7 @@ export default function DashboardPage() {
             </a>
           </div>
 
-          <div className="bv-card" style={{ overflow: "hidden" }}>
+          <div className="bv-card bv-table-scroll" style={{ overflow: "hidden" }}>
             {isLoading ? (
               <div className="bv-empty">
                 <p className="bv-empty__desc">Loading documents…</p>

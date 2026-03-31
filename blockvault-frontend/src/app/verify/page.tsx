@@ -87,7 +87,27 @@ export default function VerifyPage() {
   /* ── Render ───────────────────────────────────────── */
   return (
     <AppLayout>
-      <div style={{ padding: "36px 40px", maxWidth: 680 }}>
+      <div className="bv-page-shell" style={{ maxWidth: 680 }}>
+        <style>{`
+          .verify-mode-toggle {
+            display: flex;
+            background: var(--color-bg-surface);
+            border-radius: var(--radius-md);
+            padding: 4px;
+            margin-bottom: 22px;
+            width: fit-content;
+            gap: 4px;
+          }
+          @media (max-width: 640px) {
+            .verify-mode-toggle {
+              width: 100%;
+            }
+            .verify-mode-toggle button {
+              flex: 1;
+              justify-content: center;
+            }
+          }
+        `}</style>
 
         {/* Page header */}
         <div className="fade-up" style={{ marginBottom: 28 }}>
@@ -98,18 +118,7 @@ export default function VerifyPage() {
         </div>
 
         {/* Mode toggle */}
-        <div
-          className="fade-up delay-1"
-          style={{
-            display:    "flex",
-            background: "var(--color-bg-surface)",
-            borderRadius: "var(--radius-md)",
-            padding:    4,
-            marginBottom: 22,
-            width:      "fit-content",
-            gap:        4,
-          }}
-        >
+        <div className="fade-up delay-1 verify-mode-toggle">
           {(["hash", "file"] as VerifyMode[]).map((mode) => (
             <button
               key={mode}

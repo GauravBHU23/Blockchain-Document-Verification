@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Shield,
+  Menu,
   LayoutDashboard,
   Upload,
   Search,
@@ -40,6 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [profileName, setProfileName] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => { hydrate(); }, []);
 
@@ -58,6 +60,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setProfileName(user?.name ?? "");
     setProfileEmail(user?.email ?? "");
   }, [user?.name, user?.email]);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
   const isNavActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -102,29 +108,168 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div
-      style={{
-        display:  "flex",
-        minHeight: "100vh",
-        position: "relative",
-        zIndex:   1,
-      }}
-    >
+    <div className="bv-app-shell">
+      <style>{`
+        .bv-app-shell {
+          min-height: 100vh;
+          position: relative;
+          z-index: 1;
+        }
+        .bv-app-sidebar {
+          width: 228px;
+          flex-shrink: 0;
+          background: var(--color-bg-surface);
+          border-right: 1px solid var(--color-border-subtle);
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          inset: 0 auto 0 0;
+          z-index: 50;
+          transition: transform var(--transition-normal);
+        }
+        .bv-app-main {
+          margin-left: 228px;
+          min-height: 100vh;
+        }
+        .bv-mobile-topbar,
+        .bv-mobile-bottomnav,
+        .bv-mobile-overlay {
+          display: none;
+        }
+        @media (max-width: 960px) {
+          .bv-sidebar-close {
+            display: flex !important;
+          }
+          .bv-app-sidebar {
+            width: min(84vw, 320px);
+            transform: translateX(-100%);
+            box-shadow: var(--shadow-modal);
+          }
+          .bv-app-sidebar--open {
+            transform: translateX(0);
+          }
+          .bv-app-main {
+            margin-left: 0;
+            padding-top: 72px;
+            padding-bottom: 88px;
+          }
+          .bv-mobile-topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 60;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: rgba(7, 7, 15, 0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--color-border-subtle);
+          }
+          .bv-mobile-bottomnav {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 60;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+            padding: 8px;
+            background: rgba(13, 13, 26, 0.92);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: 22px;
+            box-shadow: var(--shadow-modal);
+          }
+          .bv-mobile-bottomnav a {
+            min-width: 0;
+          }
+          .bv-mobile-bottomnav-label {
+            font-size: 10px;
+            line-height: 1.1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .bv-mobile-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 45;
+            display: block;
+            background: rgba(3, 5, 12, 0.56);
+            backdrop-filter: blur(6px);
+          }
+        }
+      `}</style>
+
+      <div className="bv-mobile-topbar">
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(true)}
+          className="bv-btn bv-btn--ghost"
+          style={{ padding: 10, borderRadius: 14 }}
+          aria-label="Open navigation"
+        >
+          <Menu size={18} />
+        </button>
+
+        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              background: "linear-gradient(135deg, var(--color-brand) 0%, var(--color-success) 100%)",
+              borderRadius: "var(--radius-md)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 14px rgba(124,111,247,0.3)",
+              flexShrink: 0,
+            }}
+          >
+            <Shield size={17} color="#fff" />
+          </div>
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 800,
+              fontSize: 18,
+              letterSpacing: "-0.025em",
+            }}
+          >
+            Block<span style={{ color: "var(--color-brand-bright)" }}>Vault</span>
+          </span>
+        </Link>
+
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, var(--color-brand), var(--color-success))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 14,
+            color: "#fff",
+            flexShrink: 0,
+          }}
+        >
+          {userInitial}
+        </div>
+      </div>
+
+      {isSidebarOpen && <div className="bv-mobile-overlay" onClick={() => setIsSidebarOpen(false)} />}
       {/* ── Sidebar ───────────────────────────────────── */}
       <aside
+        className={`bv-app-sidebar ${isSidebarOpen ? "bv-app-sidebar--open" : ""}`}
         style={{
-          width:      228,
-          flexShrink: 0,
-          background: "var(--color-bg-surface)",
-          borderRight: "1px solid var(--color-border-subtle)",
-          display:    "flex",
-          flexDirection: "column",
-          padding:    "0",
-          position:   "fixed",
-          top:        0,
-          left:       0,
-          bottom:     0,
-          zIndex:     50,
+          padding: "0",
         }}
       >
 
@@ -135,34 +280,58 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             borderBottom: "1px solid var(--color-border-subtle)",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
             gap: 10,
           }}
         >
-          <div
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width:  36,
+                height: 36,
+                background: "linear-gradient(135deg, var(--color-brand) 0%, var(--color-success) 100%)",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 4px 14px rgba(124,111,247,0.3)",
+              }}
+            >
+              <Shield size={17} color="#fff" />
+            </div>
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 800,
+                fontSize:   18,
+                letterSpacing: "-0.025em",
+              }}
+            >
+              Block<span style={{ color: "var(--color-brand-bright)" }}>Vault</span>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(false)}
             style={{
-              width:  36,
-              height: 36,
-              background: "linear-gradient(135deg, var(--color-brand) 0%, var(--color-success) 100%)",
-              borderRadius: "var(--radius-md)",
-              display: "flex",
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              border: "1px solid var(--color-border-subtle)",
+              background: "var(--color-bg-elevated)",
+              color: "var(--color-text-muted)",
+              display: "none",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
-              boxShadow: "0 4px 14px rgba(124,111,247,0.3)",
+              cursor: "pointer",
             }}
+            className="bv-sidebar-close"
+            aria-label="Close navigation"
           >
-            <Shield size={17} color="#fff" />
-          </div>
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 800,
-              fontSize:   18,
-              letterSpacing: "-0.025em",
-            }}
-          >
-            Block<span style={{ color: "var(--color-brand-bright)" }}>Vault</span>
-          </span>
+            <X size={15} />
+          </button>
         </div>
 
         {/* Navigation links */}
@@ -347,9 +516,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Page content ──────────────────────────────── */}
-      <main style={{ marginLeft: 228, flex: 1, minHeight: "100vh" }}>
+      <main className="bv-app-main">
         {children}
       </main>
+
+      <nav className="bv-mobile-bottomnav">
+        {NAV_ITEMS.map(({ href, icon: Icon, label }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`bv-nav-link ${isNavActive(href) ? "bv-nav-link--active" : ""}`}
+            style={{
+              padding: "8px 6px",
+              flexDirection: "column",
+              gap: 6,
+              justifyContent: "center",
+              borderRadius: 16,
+            }}
+          >
+            <Icon size={16} />
+            <span className="bv-mobile-bottomnav-label">{label}</span>
+          </Link>
+        ))}
+      </nav>
 
       {isEditingProfile && (
         <div

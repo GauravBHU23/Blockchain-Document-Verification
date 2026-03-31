@@ -125,7 +125,7 @@ export default function UploadPage() {
   if (uploadedDoc) {
     return (
       <AppLayout>
-        <div style={{ padding: "36px 40px", maxWidth: 640 }}>
+        <div className="bv-page-shell" style={{ maxWidth: 640 }}>
           <div className="bv-card scale-in" style={{ padding: 36 }}>
 
             {/* Success icon */}
@@ -274,7 +274,7 @@ export default function UploadPage() {
             </div>
 
             {/* Actions */}
-            <div style={{ display: "flex", gap: 12, marginTop: 28 }}>
+            <div className="bv-actions-row" style={{ marginTop: 28 }}>
               <button
                 onClick={handleReset}
                 className="bv-btn bv-btn--primary"
@@ -300,7 +300,7 @@ export default function UploadPage() {
   /* ── Default upload state ──────────────────────────── */
   return (
     <AppLayout>
-      <div style={{ padding: "36px 40px", maxWidth: 680 }}>
+      <div className="bv-page-shell" style={{ maxWidth: 680 }}>
 
         {/* Page header */}
         <div className="fade-up" style={{ marginBottom: 28 }}>
@@ -437,7 +437,7 @@ export default function UploadPage() {
         )}
 
         {/* Action buttons */}
-        <div className="fade-up delay-3" style={{ display: "flex", gap: 12 }}>
+        <div className="fade-up delay-3 bv-actions-row">
           <button
             className="bv-btn bv-btn--primary"
             onClick={handleUpload}

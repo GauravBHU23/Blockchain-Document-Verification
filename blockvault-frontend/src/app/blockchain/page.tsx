@@ -41,17 +41,53 @@ export default function BlockchainPage() {
   /* ── Render ───────────────────────────────────────── */
   return (
     <AppLayout>
-      <div style={{ padding: "36px 40px" }}>
+      <div className="bv-page-shell">
+        <style>{`
+          .blockchain-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            gap: 16px;
+          }
+          .blockchain-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            align-items: start;
+          }
+          .blockchain-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+          }
+          @media (min-width: 1100px) {
+            .blockchain-layout--detail {
+              grid-template-columns: minmax(0, 1fr) 400px;
+            }
+          }
+          @media (max-width: 780px) {
+            .blockchain-header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            .blockchain-header-actions {
+              width: 100%;
+              justify-content: space-between;
+              flex-wrap: wrap;
+            }
+          }
+          @media (max-width: 640px) {
+            .blockchain-stats {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
 
         {/* Page header */}
         <div
-          className="fade-up"
-          style={{
-            display:        "flex",
-            alignItems:     "center",
-            justifyContent: "space-between",
-            marginBottom:   32,
-          }}
+          className="fade-up blockchain-header"
         >
           <div>
             <h1 style={{ fontSize: 26, marginBottom: 5 }}>Blockchain Explorer</h1>
@@ -60,7 +96,7 @@ export default function BlockchainPage() {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div className="blockchain-header-actions" style={{ display: "flex", gap: 12, alignItems: "center" }}>
             {/* Chain validity badge */}
             {chainData && (
               <div
@@ -116,26 +152,11 @@ export default function BlockchainPage() {
             <p className="bv-empty__desc">Loading blockchain data…</p>
           </div>
         ) : (
-          <div
-            style={{
-              display:             "grid",
-              gridTemplateColumns: selectedBlock ? "1fr 400px" : "1fr",
-              gap:                 24,
-              alignItems:          "flex-start",
-            }}
-          >
+          <div className={`blockchain-layout ${selectedBlock ? "blockchain-layout--detail" : ""}`}>
             {/* ── Left: Stats + Block list ─────────────── */}
             <div>
               {/* Summary stats */}
-              <div
-                className="fade-up delay-1"
-                style={{
-                  display:             "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap:                 14,
-                  marginBottom:        24,
-                }}
-              >
+              <div className="fade-up delay-1 blockchain-stats">
                 {[
                   { label: "Total Blocks",       value: chainData?.length,             color: "var(--color-brand-bright)"  },
                   { label: "Total Transactions", value: totalTransactions,              color: "var(--color-success)"       },

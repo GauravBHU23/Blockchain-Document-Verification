@@ -552,3 +552,53 @@ a { text-decoration: none; color: inherit; }
 .text-warning { color: var(--color-warning); }
 .text-muted   { color: var(--color-text-muted); }
 .text-secondary { color: var(--color-text-secondary); }
+
+.bv-page-shell {
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  padding: 36px 40px;
+}
+
+.bv-table-scroll {
+  overflow-x: auto;
+}
+
+.bv-actions-row {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .bv-page-shell {
+    padding: 24px 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .bv-page-shell {
+    padding: 20px 14px;
+  }
+
+  .bv-btn {
+    min-height: 42px;
+    padding: 10px 16px;
+    white-space: normal;
+  }
+
+  .bv-actions-row {
+    flex-direction: column;
+  }
+
+  .bv-empty {
+    padding: 40px 18px;
+  }
+
+  .bv-stat-value {
+    font-size: 24px;
+  }
+
+  .bv-table th,
+  .bv-table td {
+    padding: 11px 12px;
+  }
+}

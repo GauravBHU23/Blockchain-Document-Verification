@@ -35,6 +35,13 @@ const STATUS_OPTIONS = [
   { label: "Rejected", value: "rejected" },
 ];
 
+type ReviewDialogState = {
+  action: "approve" | "reject";
+  documentId: number;
+  documentName: string;
+  notes: string;
+};
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -59,6 +66,7 @@ export default function OpsPage() {
   const [isDownloadingUsers, setIsDownloadingUsers] = useState(false);
   const [actingDocumentId, setActingDocumentId] = useState<number | null>(null);
   const [actingUserId, setActingUserId] = useState<number | null>(null);
+  const [reviewDialog, setReviewDialog] = useState<ReviewDialogState | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [usersExportMeta, setUsersExportMeta] = useState<UsersExportMeta | null>(null);
   const isAdmin = Boolean(user?.is_admin);
@@ -172,19 +180,36 @@ export default function OpsPage() {
     }
   };
 
-  const handleReviewDocument = async (documentId: number, action: "approve" | "reject") => {
-    const notes = window.prompt(
-      action === "approve"
-        ? "Optional approval note:"
-        : "Reason for rejection:",
-      ""
-    );
-    if (notes === null) return;
+  const openReviewDialog = (documentId: number, action: "approve" | "reject") => {
+    const targetDocument = documents.find((doc) => doc.id === documentId) ?? selectedDetail?.document;
+    setReviewDialog({
+      action,
+      documentId,
+      documentName: targetDocument?.original_name ?? "this document",
+      notes: "",
+    });
+  };
+
+  const closeReviewDialog = () => {
+    if (actingDocumentId !== null) return;
+    setReviewDialog(null);
+  };
+
+  const handleReviewDocument = async () => {
+    if (!reviewDialog) return;
+    const { action, documentId } = reviewDialog;
+    const notes = reviewDialog.notes.trim();
+
+    if (action === "reject" && !notes) {
+      toast.error("Please add a rejection reason");
+      return;
+    }
 
     try {
       setActingDocumentId(documentId);
       await documentsApi.review(documentId, action, notes || undefined);
       toast.success(action === "approve" ? "Document approved" : "Document rejected");
+      setReviewDialog(null);
       await Promise.all([loadDocuments(), loadSummary()]);
       if (selectedDetail?.document.id === documentId) {
         await handleSelectDocument(documentId);
@@ -310,6 +335,93 @@ export default function OpsPage() {
         }
         .ops-activity-scroll::-webkit-scrollbar-thumb:hover {
           background: var(--color-text-disabled);
+        }
+
+        .ops-review-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 80;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          background: rgba(7, 10, 20, 0.76);
+          backdrop-filter: blur(8px);
+        }
+        .ops-review-modal {
+          width: min(100%, 560px);
+          border-radius: 24px;
+          border: 1px solid var(--color-border-subtle);
+          background:
+            radial-gradient(circle at top right, rgba(100, 160, 255, 0.16), transparent 30%),
+            linear-gradient(180deg, rgba(18, 22, 38, 0.98), rgba(12, 15, 28, 0.98));
+          box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+          overflow: hidden;
+        }
+        .ops-review-modal__header {
+          display: flex;
+          gap: 14px;
+          align-items: flex-start;
+          padding: 24px 24px 18px;
+          border-bottom: 1px solid var(--color-border-subtle);
+        }
+        .ops-review-modal__icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .ops-review-modal__body {
+          padding: 20px 24px 24px;
+        }
+        .ops-review-modal__textarea {
+          width: 100%;
+          min-height: 120px;
+          resize: vertical;
+          border-radius: 18px;
+          border: 1px solid var(--color-border-subtle);
+          background: rgba(255, 255, 255, 0.03);
+          color: var(--color-text-primary);
+          padding: 14px 16px;
+          font: inherit;
+          outline: none;
+          transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .ops-review-modal__textarea:focus {
+          border-color: var(--color-brand-bright);
+          box-shadow: 0 0 0 3px rgba(95, 145, 255, 0.18);
+        }
+        .ops-review-modal__actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 18px;
+        }
+        @media (max-width: 640px) {
+          .ops-review-modal-backdrop {
+            padding: 14px;
+            align-items: flex-end;
+          }
+          .ops-review-modal {
+            width: 100%;
+            border-radius: 22px 22px 0 0;
+          }
+          .ops-review-modal__header,
+          .ops-review-modal__body {
+            padding-left: 18px;
+            padding-right: 18px;
+          }
+          .ops-review-modal__actions {
+            flex-direction: column-reverse;
+          }
+          .ops-review-modal__actions button,
+          .ops-review-modal__actions .bv-btn {
+            width: 100%;
+            justify-content: center;
+          }
         }
       `}</style>
 
@@ -548,7 +660,7 @@ export default function OpsPage() {
                                     className="bv-btn bv-btn--ghost"
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      void handleReviewDocument(doc.id, "approve");
+                                      openReviewDialog(doc.id, "approve");
                                     }}
                                     disabled={actingDocumentId === doc.id}
                                     style={{ padding: "8px 12px", color: "var(--color-success)" }}
@@ -561,7 +673,7 @@ export default function OpsPage() {
                                     className="bv-btn bv-btn--ghost"
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      void handleReviewDocument(doc.id, "reject");
+                                      openReviewDialog(doc.id, "reject");
                                     }}
                                     disabled={actingDocumentId === doc.id}
                                     style={{ padding: "8px 12px", color: "var(--color-danger)" }}
@@ -761,7 +873,7 @@ export default function OpsPage() {
                     <>
                       <button
                         className="bv-btn bv-btn--ghost"
-                        onClick={() => void handleReviewDocument(selectedDetail.document.id, "approve")}
+                        onClick={() => openReviewDialog(selectedDetail.document.id, "approve")}
                         disabled={actingDocumentId === selectedDetail.document.id}
                         style={{ color: "var(--color-success)" }}
                       >
@@ -770,7 +882,7 @@ export default function OpsPage() {
                       </button>
                       <button
                         className="bv-btn bv-btn--ghost"
-                        onClick={() => void handleReviewDocument(selectedDetail.document.id, "reject")}
+                        onClick={() => openReviewDialog(selectedDetail.document.id, "reject")}
                         disabled={actingDocumentId === selectedDetail.document.id}
                         style={{ color: "var(--color-danger)" }}
                       >
@@ -924,6 +1036,104 @@ export default function OpsPage() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {reviewDialog && (
+          <div
+            className="ops-review-modal-backdrop"
+            onClick={closeReviewDialog}
+            role="presentation"
+          >
+            <div
+              className="ops-review-modal"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="review-dialog-title"
+            >
+              <div className="ops-review-modal__header">
+                <div
+                  className="ops-review-modal__icon"
+                  style={{
+                    background:
+                      reviewDialog.action === "approve"
+                        ? "rgba(34, 197, 94, 0.14)"
+                        : "rgba(239, 68, 68, 0.14)",
+                    color:
+                      reviewDialog.action === "approve"
+                        ? "var(--color-success)"
+                        : "var(--color-danger)",
+                  }}
+                >
+                  {reviewDialog.action === "approve" ? <CheckCircle2 size={22} /> : <XCircle size={22} />}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h3 id="review-dialog-title" style={{ fontSize: 20, marginBottom: 6 }}>
+                    {reviewDialog.action === "approve" ? "Approve document" : "Reject document"}
+                  </h3>
+                  <p style={{ fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
+                    {reviewDialog.action === "approve"
+                      ? `Add an optional review note before approving ${reviewDialog.documentName}.`
+                      : `Add a clear rejection reason for ${reviewDialog.documentName}.`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="ops-review-modal__body">
+                <label className="bv-label" style={{ marginBottom: 8 }}>
+                  {reviewDialog.action === "approve" ? "Approval note" : "Rejection reason"}
+                </label>
+                <textarea
+                  className="ops-review-modal__textarea"
+                  placeholder={
+                    reviewDialog.action === "approve"
+                      ? "Everything looks good. Optional context for the audit trail..."
+                      : "Explain why this document was rejected..."
+                  }
+                  value={reviewDialog.notes}
+                  onChange={(event) =>
+                    setReviewDialog((current) =>
+                      current ? { ...current, notes: event.target.value } : current
+                    )
+                  }
+                />
+
+                <div className="ops-review-modal__actions">
+                  <button
+                    type="button"
+                    className="bv-btn bv-btn--ghost"
+                    onClick={closeReviewDialog}
+                    disabled={actingDocumentId === reviewDialog.documentId}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="bv-btn"
+                    onClick={() => void handleReviewDocument()}
+                    disabled={actingDocumentId === reviewDialog.documentId}
+                    style={{
+                      background:
+                        reviewDialog.action === "approve"
+                          ? "linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.9))"
+                          : "linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.9))",
+                      color: "#fff",
+                      border: "none",
+                    }}
+                  >
+                    {actingDocumentId === reviewDialog.documentId ? (
+                      <Loader2 size={14} className="spin" />
+                    ) : reviewDialog.action === "approve" ? (
+                      <CheckCircle2 size={14} />
+                    ) : (
+                      <XCircle size={14} />
+                    )}
+                    {reviewDialog.action === "approve" ? "Approve Now" : "Reject Document"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

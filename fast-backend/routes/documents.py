@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 
+from core import ledger
 from core.database import get_db
 from core.security import get_current_admin, get_current_user
-from core.blockchain import Blockchain
 from models.models import Document, DocumentStatus, User
 from schemas.schemas import (
     AuditEventOut,
@@ -21,9 +21,6 @@ from schemas.schemas import (
 )
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
-
-# Shared in-memory blockchain instance (swap for Redis-backed in production)
-_blockchain = Blockchain()
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 ALLOWED_TYPES = {
@@ -138,24 +135,6 @@ async def _get_user_email(db: AsyncSession, user_id: int | None) -> str | None:
     return user.email if user else None
 
 
-def _mine_and_anchor_document(doc: Document, current_user: dict) -> None:
-    tx_id = uuid.uuid4().hex
-    _blockchain.add_transaction(
-        {
-            "tx_id": tx_id,
-            "document_hash": doc.document_hash,
-            "uploader_id": doc.user_id,
-            "uploader_email": current_user["email"],
-            "filename": doc.original_name,
-        }
-    )
-    block = _blockchain.mine_block()
-    doc.tx_id = tx_id
-    doc.block_index = block.index
-    doc.verified_at = datetime.utcnow()
-    doc.status = DocumentStatus.VERIFIED
-
-
 @router.post("/upload", response_model=DocumentOut, status_code=201)
 async def upload_document(
     file: UploadFile = File(...),
@@ -174,11 +153,18 @@ async def upload_document(
     doc_hash = hashlib.sha256(content).hexdigest()
 
     # --- Check duplicate ---
-    existing = await db.execute(
-        select(Document).where(Document.document_hash == doc_hash, Document.is_archived.is_(False))
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Document already exists in the active registry")
+    existing = await db.execute(select(Document).where(Document.document_hash == doc_hash))
+    existing_doc = existing.scalar_one_or_none()
+    if existing_doc:
+        if existing_doc.is_archived:
+            detail = "Document already exists in the archive. Restore the existing record instead of uploading it again."
+        elif existing_doc.status == DocumentStatus.PENDING:
+            detail = "Document already exists and is pending admin review."
+        elif existing_doc.status == DocumentStatus.VERIFIED:
+            detail = "Document already exists and has already been verified."
+        else:
+            detail = "Document already exists in the registry."
+        raise HTTPException(status_code=409, detail=detail)
 
     # --- Persist to DB ---
     doc = Document(
@@ -202,7 +188,7 @@ async def verify_document(
     document_hash: str,
     db: AsyncSession = Depends(get_db),
 ):
-    result = _blockchain.find_document(document_hash)
+    result = await ledger.find_document(db, document_hash)
     if not result:
         pending_result = await db.execute(select(Document).where(Document.document_hash == document_hash))
         pending_doc = pending_result.scalar_one_or_none()
@@ -321,6 +307,8 @@ async def get_document_summary(
         if total_documents
         else 0.0
     )
+    chain_valid = await ledger.is_chain_valid(db)
+    chain_snapshot = await ledger.get_chain_snapshot(db)
 
     return DocumentSummaryOut(
         total_documents=total_documents,
@@ -330,8 +318,8 @@ async def get_document_summary(
         archived_documents=archived_documents,
         total_storage_bytes=total_storage_bytes,
         verification_rate=verification_rate,
-        blockchain_blocks=len(_blockchain.chain),
-        chain_valid=_blockchain.is_chain_valid(),
+        blockchain_blocks=len(chain_snapshot),
+        chain_valid=chain_valid,
         latest_upload_at=latest_upload_at,
         latest_verification_at=latest_verification_at,
         recent_activity=recent_activity[:10],
@@ -382,7 +370,8 @@ async def review_document(
     doc.notes = payload.notes or doc.notes
 
     if payload.action == "approve":
-        _mine_and_anchor_document(doc, current_admin)
+        doc.verified_at = datetime.utcnow()
+        await ledger.anchor_document(db, doc)
         if not doc.notes:
             doc.notes = "Approved by admin review"
     else:

@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SAEnum
+    Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SAEnum, Float
 )
 from sqlalchemy.orm import relationship
 import enum
@@ -67,3 +67,44 @@ class Document(Base):
 
     def __repr__(self) -> str:
         return f"<Document id={self.id} hash={self.document_hash[:12]}...>"
+
+
+class BlockchainBlock(Base):
+    __tablename__ = "blockchain_blocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    index = Column(Integer, unique=True, index=True, nullable=False)
+    timestamp = Column(Float, nullable=False)
+    proof = Column(Integer, nullable=False)
+    previous_hash = Column(String(64), nullable=False)
+    block_hash = Column(String(64), unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    transactions = relationship(
+        "BlockchainTransaction",
+        back_populates="block",
+        cascade="all, delete-orphan",
+        order_by="BlockchainTransaction.id",
+    )
+
+    def __repr__(self) -> str:
+        return f"<BlockchainBlock index={self.index} hash={self.block_hash[:12]}...>"
+
+
+class BlockchainTransaction(Base):
+    __tablename__ = "blockchain_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    block_id = Column(Integer, ForeignKey("blockchain_blocks.id", ondelete="CASCADE"), nullable=False, index=True)
+    tx_id = Column(String(64), unique=True, index=True, nullable=False)
+    document_hash = Column(String(64), index=True, nullable=False)
+    uploader_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    uploader_email = Column(String(255), nullable=False)
+    filename = Column(Text, nullable=False)
+    timestamp = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    block = relationship("BlockchainBlock", back_populates="transactions")
+
+    def __repr__(self) -> str:
+        return f"<BlockchainTransaction tx_id={self.tx_id[:12]}... document_hash={self.document_hash[:12]}...>"

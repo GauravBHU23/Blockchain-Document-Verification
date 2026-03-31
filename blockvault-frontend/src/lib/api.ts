@@ -2,7 +2,7 @@ import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from "axio
 
 /* ── Client setup ───────────────────────────────────────── */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://sie-subscriber-dylan-disabilities.trycloudflare.com",
   headers: { "Content-Type": "application/json" },
   timeout: 30_000,
 });

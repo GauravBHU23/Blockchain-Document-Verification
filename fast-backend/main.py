@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import inspect, text
 
 from core.database import engine, Base, AsyncSessionLocal
+from core.ledger import ensure_blockchain_ready
 from core.user_exports import export_users_csv
 from routes import auth, documents, blockchain_routes
 
@@ -70,7 +71,9 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(_ensure_document_lifecycle_columns)
         await conn.run_sync(_ensure_user_verification_columns)
     async with AsyncSessionLocal() as session:
+        await ensure_blockchain_ready(session)
         await export_users_csv(session)
+        await session.commit()
     yield
     await engine.dispose()
 
@@ -83,11 +86,25 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+default_origins = ",".join(
+    [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://blockvault-frontend.vercel.app",
+        "https://sie-subscriber-dylan-disabilities.trycloudflare.com",
+    ]
+)
+origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("ALLOWED_ORIGINS", default_origins).split(",")
+    if origin.strip()
+]
+vercel_origin_regex = r"https://([a-zA-Z0-9-]+\.)*vercel\.app"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=vercel_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

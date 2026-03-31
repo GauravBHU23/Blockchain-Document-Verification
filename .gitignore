@@ -5,6 +5,7 @@ blockvault-frontend/.next/
 # backend
 fast-backend/__pycache__/
 fast-backend/.env
+fast-backend/scripts/users_export_live.csv
 
 # env
 .env

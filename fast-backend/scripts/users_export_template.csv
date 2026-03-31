@@ -1,0 +1,2 @@
+id,name,email,is_active,is_admin,email_verified,email_verified_at,last_login_at,created_at
+1,Gaurav Kumar,gaurav@example.com,true,false,true,2026-03-31 10:30:00,2026-03-31 11:00:00,2026-03-31 10:20:00

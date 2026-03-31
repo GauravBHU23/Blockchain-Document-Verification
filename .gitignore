@@ -1,0 +1,27 @@
+# frontend
+blockvault-frontend/node_modules/
+blockvault-frontend/.next/
+
+# backend
+fast-backend/__pycache__/
+fast-backend/.env
+
+# env
+.env
+.env.local
+
+# python
+*.pyc
+__pycache__/
+
+# logs
+*.log
+
+# misc
+.vscode/
+
+fast-backend/__pycache__/
+fast-backend/.env
+
+.env
+.env.local
